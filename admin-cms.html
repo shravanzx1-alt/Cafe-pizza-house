@@ -561,21 +561,29 @@
           
           <form id="waiter-password-form" style="margin-bottom: 24px;">
             <div class="form-group">
+              <label for="waiter-user">Waiter Username</label>
+              <input type="text" id="waiter-user" placeholder="Enter username" required>
+            </div>
+            <div class="form-group">
               <label for="waiter-pass">New Waiter Password (min 6 chars)</label>
               <input type="password" id="waiter-pass" placeholder="Enter new password" required>
             </div>
             <button type="submit" class="btn btn-outline" style="background-color: var(--dark); border-color: var(--dark); font-size: 13px; padding: 6px 12px; min-height: auto;">
-              Update Waiter Password
+              Update Waiter Credentials
             </button>
           </form>
 
           <form id="owner-password-form" style="margin-bottom: 24px;">
             <div class="form-group">
+              <label for="owner-user">Owner Username</label>
+              <input type="text" id="owner-user" placeholder="Enter username" required>
+            </div>
+            <div class="form-group">
               <label for="owner-pass">New Owner Password (min 6 chars)</label>
               <input type="password" id="owner-pass" placeholder="Enter new password" required>
             </div>
             <button type="submit" class="btn btn-primary" style="font-size: 13px; padding: 6px 12px; min-height: auto;">
-              Update Owner Password
+              Update Owner Credentials
             </button>
           </form>
 
@@ -1399,6 +1407,12 @@
       settingsWhatsAppInput.value = settings.whatsappNumber || '917880105006';
       settingsHoursInput.value = settings.openingHours || '11:00 AM – 10:00 PM';
 
+      // Prefill admin usernames
+      const waiterUserField = document.getElementById("waiter-user");
+      const ownerUserField = document.getElementById("owner-user");
+      if (waiterUserField) waiterUserField.value = settings.waiterUsername || 'waiter';
+      if (ownerUserField) ownerUserField.value = settings.ownerUsername || 'owner';
+
       // Populate shop status toggle
       const shopStatus = settings.shopStatus || 'open';
       const statusToggle = document.getElementById("shop-status-toggle");
@@ -1494,33 +1508,49 @@
 
     waiterPassForm.addEventListener("submit", async (e) => {
       e.preventDefault();
+      const newUser = document.getElementById("waiter-user").value.trim();
       const newPass = document.getElementById("waiter-pass").value;
+      if (!newUser) {
+        alert("Username cannot be empty.");
+        return;
+      }
       if (newPass.length < 6) {
         alert("Password must be at least 6 characters.");
         return;
       }
       try {
-        await db.ref('cityhut/cms/settings/waiterPassword').set(newPass);
-        alert("Waiter password updated successfully!");
+        await db.ref('cityhut/cms/settings').update({
+          waiterUsername: newUser,
+          waiterPassword: newPass
+        });
+        alert("Waiter credentials updated successfully!");
         document.getElementById("waiter-pass").value = '';
       } catch (err) {
-        alert("Failed to update waiter password.");
+        alert("Failed to update waiter credentials.");
       }
     });
 
     ownerPassForm.addEventListener("submit", async (e) => {
       e.preventDefault();
+      const newUser = document.getElementById("owner-user").value.trim();
       const newPass = document.getElementById("owner-pass").value;
+      if (!newUser) {
+        alert("Username cannot be empty.");
+        return;
+      }
       if (newPass.length < 6) {
         alert("Password must be at least 6 characters.");
         return;
       }
       try {
-        await db.ref('cityhut/cms/settings/ownerPassword').set(newPass);
-        alert("Owner password updated successfully!");
+        await db.ref('cityhut/cms/settings').update({
+          ownerUsername: newUser,
+          ownerPassword: newPass
+        });
+        alert("Owner credentials updated successfully!");
         document.getElementById("owner-pass").value = '';
       } catch (err) {
-        alert("Failed to update owner password.");
+        alert("Failed to update owner credentials.");
       }
     });
 
