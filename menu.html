@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@700;800&display=swap" media="print" onload="this.media='all'">
   <!-- Stylesheet & Preloads -->
   <link rel="preload" as="image" href="images/logo-rect.jpg" fetchpriority="high">
-  <link rel="stylesheet" href="css/style.css?v=27">
+  <link rel="stylesheet" href="css/style.css?v=28">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="images/logo-circle.jpg">
   <link rel="icon" type="image/jpeg" href="/images/logo-circle.jpg">
@@ -66,7 +66,12 @@
   <!-- ===== 4. STICKY CATEGORY FILTER BAR ===== -->
   <div class="category-filter-wrapper">
     <div class="category-filter-bar" id="menu-filter-bar" role="tablist" aria-label="Menu categories">
-      <!-- Loaded dynamically -->
+      <div class="skeleton-filter-bar" style="width: 100%;">
+        <div class="skeleton-filter-pill skeleton-shimmer"></div>
+        <div class="skeleton-filter-pill skeleton-shimmer"></div>
+        <div class="skeleton-filter-pill skeleton-shimmer"></div>
+        <div class="skeleton-filter-pill skeleton-shimmer"></div>
+      </div>
     </div>
   </div>
 
@@ -86,7 +91,51 @@
     </div>
     
     <div id="menu-sections-container">
-      <!-- Dynamic sections will render here -->
+      <div class="skeleton-section">
+        <div class="skeleton-title skeleton-shimmer"></div>
+        <div class="skeleton-grid">
+          <div class="skeleton-card">
+            <div class="skeleton-media skeleton-shimmer"></div>
+            <div class="skeleton-text-lg skeleton-shimmer"></div>
+            <div class="skeleton-text-sm skeleton-shimmer"></div>
+            <div class="skeleton-text-xs skeleton-shimmer"></div>
+            <div class="skeleton-footer">
+              <div class="skeleton-price skeleton-shimmer"></div>
+              <div class="skeleton-btn skeleton-shimmer"></div>
+            </div>
+          </div>
+          <div class="skeleton-card">
+            <div class="skeleton-media skeleton-shimmer"></div>
+            <div class="skeleton-text-lg skeleton-shimmer"></div>
+            <div class="skeleton-text-sm skeleton-shimmer"></div>
+            <div class="skeleton-text-xs skeleton-shimmer"></div>
+            <div class="skeleton-footer">
+              <div class="skeleton-price skeleton-shimmer"></div>
+              <div class="skeleton-btn skeleton-shimmer"></div>
+            </div>
+          </div>
+          <div class="skeleton-card">
+            <div class="skeleton-media skeleton-shimmer"></div>
+            <div class="skeleton-text-lg skeleton-shimmer"></div>
+            <div class="skeleton-text-sm skeleton-shimmer"></div>
+            <div class="skeleton-text-xs skeleton-shimmer"></div>
+            <div class="skeleton-footer">
+              <div class="skeleton-price skeleton-shimmer"></div>
+              <div class="skeleton-btn skeleton-shimmer"></div>
+            </div>
+          </div>
+          <div class="skeleton-card">
+            <div class="skeleton-media skeleton-shimmer"></div>
+            <div class="skeleton-text-lg skeleton-shimmer"></div>
+            <div class="skeleton-text-sm skeleton-shimmer"></div>
+            <div class="skeleton-text-xs skeleton-shimmer"></div>
+            <div class="skeleton-footer">
+              <div class="skeleton-price skeleton-shimmer"></div>
+              <div class="skeleton-btn skeleton-shimmer"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </main>
 
@@ -375,6 +424,6 @@
   <script defer src="firebase-config.js"></script>
 
   <!-- Scripts -->
-  <script defer src="js/main.js?v=27"></script>
+  <script defer src="js/main.js?v=28"></script>
 </body>
 </html>
