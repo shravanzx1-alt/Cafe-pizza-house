@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin-orders
+Disallow: /admin-cms
+Disallow: /admin-login
+
+Sitemap: https://www.cafepizzahouse.co.in/sitemap.xml
