@@ -19,12 +19,13 @@
       background: #ffffff;
       color: #000000;
       font-family: 'Courier New', Courier, monospace;
-      padding: 20px;
+      padding: 12px 14px;
       width: 100%;
-      max-width: 320px;
+      max-width: 280px;
       margin: 0 auto;
       border: 1px solid #ddd;
       box-shadow: 0 0 10px rgba(0,0,0,0.05);
+      box-sizing: border-box;
     }
     .receipt-header {
       text-align: center;
@@ -38,7 +39,7 @@
     }
     .receipt-divider {
       border-top: 1px dashed #000;
-      margin: 10px 0;
+      margin: 6px 0;
     }
     .receipt-row {
       display: flex;
@@ -80,8 +81,9 @@
         max-width: 100% !important;
         border: none !important;
         box-shadow: none !important;
-        padding: 0 !important;
+        padding: 2mm 3mm !important;
         margin: 0 !important;
+        box-sizing: border-box !important;
       }
       /* Thermal Printer specific high contrast / dark print optimizations */
       #thermal-slip-content, #thermal-slip-content * {
@@ -89,9 +91,11 @@
         background: #ffffff !important;
         font-weight: bold !important; /* Force all text to be bold to print darker */
         text-shadow: none !important;
+        font-family: 'Courier New', Courier, monospace !important;
       }
       .receipt-divider {
-        border-top: 2px dashed #000000 !important; /* Thicker division line */
+        border-top: 1px dashed #000000 !important;
+        margin: 6px 0 !important;
       }
       @page {
         size: auto;
@@ -1265,7 +1269,7 @@
       }
     }
 
-    // Receipt Print Logic
+        // Receipt Print Logic - Exact Match to Thermal Slip Format
     async function openReceiptPrintModal(orderId) {
       try {
         const snap = await db.ref(`cityhut/orders/${orderId}`).once('value');
@@ -1280,16 +1284,18 @@
 
         const itemsList = order.items ? Object.values(order.items) : [];
         let subtotal = 0;
+        let totalQty = 0;
         
-        const itemsHtml = itemsList.map(item => {
-          const itemSub = item.price * item.qty;
+        const itemsHtml = itemsList.map((item, idx) => {
+          const qty = parseInt(item.qty) || 1;
+          totalQty += qty;
+          const price = Math.round(parseFloat(item.price) || 0);
+          const itemSub = price * qty;
           subtotal += itemSub;
-          const sizeLabel = item.size ? ` (${item.size})` : "";
           
-          let custHtml = '';
-          if (item.crust) {
-            custHtml += `<div style="font-size: 11px; color: #000000; margin-left: 10px; font-weight: bold;">↳ Crust: ${escapeHTML(item.crust)}</div>`;
-          }
+          let subParts = [];
+          if (item.size) subParts.push(item.size);
+          if (item.crust) subParts.push(item.crust);
           if (item.addons) {
             let addonList = [];
             if (Array.isArray(item.addons)) {
@@ -1299,132 +1305,160 @@
             }
             if (addonList.length > 0) {
               const addonNames = addonList.map(a => typeof a === 'string' ? a : a.name).join(", ");
-              custHtml += `<div style="font-size: 11px; color: #000000; margin-left: 10px; font-weight: bold;">↳ Addons: ${escapeHTML(addonNames)}</div>`;
+              if (addonNames) subParts.push(addonNames);
             }
           }
 
+          let subHtml = '';
+          if (subParts.length > 0) {
+            subHtml = `<div style="padding-left: 20px; font-size: 11px; font-weight: bold; color: #000000; line-height: 1.2;">${escapeHTML(subParts.join(" • "))}</div>`;
+          }
+
           return `
-            <div class="receipt-item-row" style="margin-bottom: 6px;">
-              <div style="font-weight: bold; font-size: 13px; color: #000000;">${escapeHTML(item.name)}${sizeLabel}</div>
-              ${custHtml}
-              <div class="receipt-row" style="font-size: 12px; color: #000000;">
-                <span>  ${item.qty} x ₹${item.price}</span>
-                <span>₹${itemSub}</span>
+            <div style="margin-bottom: 5px; font-size: 12px; font-weight: bold; color: #000000; line-height: 1.3;">
+              <div style="display: flex; align-items: flex-start;">
+                <span style="width: 20px; text-align: left;">${idx + 1}</span>
+                <span style="flex: 1; padding-right: 4px; word-break: break-word;">${escapeHTML(item.name)}</span>
+                <span style="width: 35px; text-align: center;">${qty}</span>
+                <span style="width: 50px; text-align: right;">${price}</span>
+                <span style="width: 55px; text-align: right;">${itemSub}</span>
               </div>
+              ${subHtml}
             </div>
           `;
         }).join("");
 
-        let gstHtml = '';
         let grandTotal = subtotal;
+        const discountVal = parseFloat(order.discount) || 0;
+        if (discountVal > 0) {
+          grandTotal -= discountVal;
+        }
+
+        let gstHtml = '';
         if (activeBillSettings.gstEnabled) {
           const cgst = Math.round(subtotal * (activeBillSettings.gstPercentage / 2) * 100) / 100;
           const sgst = Math.round(subtotal * (activeBillSettings.gstPercentage / 2) * 100) / 100;
           grandTotal += cgst + sgst;
           gstHtml = `
-            <div class="receipt-row" style="font-size: 12px; color: #000000;">
-              <span>CGST (${(activeBillSettings.gstPercentage / 2)}%):</span>
-              <span>₹${cgst.toFixed(2)}</span>
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 2px;">
+              <span style="width: 100px; text-align: left;">CGST (${(activeBillSettings.gstPercentage / 2)}%)</span>
+              <span style="width: 15px; text-align: center;">:</span>
+              <span style="width: 55px; text-align: right;">${cgst.toFixed(2)}</span>
             </div>
-            <div class="receipt-row" style="font-size: 12px; color: #000000;">
-              <span>SGST (${(activeBillSettings.gstPercentage / 2)}%):</span>
-              <span>₹${sgst.toFixed(2)}</span>
-            </div>
-          `;
-        }
-
-        let serviceChargeHtml = '';
-        if (activeBillSettings.serviceCharge > 0) {
-          grandTotal += activeBillSettings.serviceCharge;
-          serviceChargeHtml = `
-            <div class="receipt-row" style="font-size: 12px; color: #000000;">
-              <span>Service/Pkg Charge:</span>
-              <span>₹${activeBillSettings.serviceCharge}</span>
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 2px;">
+              <span style="width: 100px; text-align: left;">SGST (${(activeBillSettings.gstPercentage / 2)}%)</span>
+              <span style="width: 15px; text-align: center;">:</span>
+              <span style="width: 55px; text-align: right;">${sgst.toFixed(2)}</span>
             </div>
           `;
         }
 
-        let discountHtml = '';
-        const discountVal = parseFloat(order.discount) || 0;
-        if (discountVal > 0) {
-          grandTotal -= discountVal;
-          discountHtml = `
-            <div class="receipt-row" style="font-size: 12px; font-weight: bold; color: #000000;">
-              <span>Discount:</span>
-              <span>-₹${discountVal.toFixed(2)}</span>
-            </div>
-          `;
+        const dateObj = new Date(order.createdAt || Date.now());
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const year = dateObj.getFullYear();
+        const formattedDate = `${day}/${month}/${year}`;
+
+        // Format phone without prefix
+        let rawPhone = order.phone || "";
+        let displayPhone = rawPhone.replace(/\D/g, '');
+        if (displayPhone.startsWith('91') && displayPhone.length === 12) {
+          displayPhone = displayPhone.substring(2);
         }
 
-        const timeStr = new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const dateStr = new Date(order.createdAt).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
-
-        const isDineIn = order.type === 'dine-in';
-        let typeInfo = '';
-        if (isDineIn) {
-          typeInfo = `${order.tableCode} Table Dine-In`;
+        let billToLine = "";
+        if (order.type === 'dine-in') {
+          billToLine = order.tableCode ? `${order.tableCode} Table Dine-In` : (order.customerName || "Dine-In Guest");
         } else if (order.type === 'takeaway') {
-          typeInfo = `Takeaway No. ${order.takeawayNum || '#'}`;
+          billToLine = order.customerName ? `${order.customerName} (Takeaway #${order.takeawayNum || ''})` : `Takeaway #${order.takeawayNum || ''}`;
         } else {
-          typeInfo = `Delivery Order`;
+          billToLine = order.address || order.customerName || "Delivery Customer";
         }
+
+        const invoiceNum = order.invoiceNo || (orderId.replace(/\D/g, '').slice(-4) || '5496');
 
         const slipContent = `
-          <div class="receipt-header" style="color: #000000;">
-            <div class="receipt-logo" style="color: #000000; font-weight: bold;">${escapeHTML(activeBillSettings.headerText)}</div>
-            <div style="font-size: 11px; font-weight: bold;">Kawardha ki Sabse Tasty Pizza</div>
-            <div style="font-size: 10px; margin-top: 2px; font-weight: bold;">Lohara Road, Kawardha, CG</div>
-            <div style="font-size: 10px; font-weight: bold;">Contact: +91 ${escapeHTML(activeWhatsAppNumber)}</div>
+          <div style="text-align: center; color: #000000; margin-bottom: 6px;">
+            <img src="images/logo-circle.jpg" alt="Logo" style="width: 130px; height: auto; display: block; margin: 0 auto 6px auto; filter: contrast(180%); border-radius: 50%;">
+            <div style="font-size: 12px; font-weight: bold; line-height: 1.35;">Lohara Road, Kawardha Branch</div>
+            <div style="font-size: 12px; font-weight: bold; line-height: 1.35;">State: 22-Chhattisgarh</div>
           </div>
           
           <div class="receipt-divider"></div>
           
-          <div class="receipt-row" style="font-size: 11px; color: #000000;">
-            <span>Date: ${dateStr}</span>
-            <span>Time: ${timeStr}</span>
+          <div style="text-align: center; font-size: 13px; font-weight: bold; color: #000000; margin: 3px 0 6px 0;">Tax Invoice</div>
+          
+          <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; color: #000000; line-height: 1.35; margin-bottom: 4px;">
+            <div style="max-width: 55%;">
+              ${displayPhone ? `<div>${escapeHTML(displayPhone)}</div>` : ''}
+              <div>Bill To:</div>
+              <div>${escapeHTML(billToLine)}</div>
+            </div>
+            <div style="text-align: right; max-width: 45%;">
+              <div>Date: ${formattedDate}</div>
+              <div>Invoice No.: ${invoiceNum}</div>
+            </div>
           </div>
-          <div class="receipt-row" style="font-size: 11px; color: #000000;">
-            <span>Order ID: ...${orderId.slice(-6)}</span>
-            <span>Type: ${order.type.toUpperCase()}</span>
-          </div>
-          <div style="font-size: 12px; font-weight: bold; margin-top: 4px; color: #000000;">
-            ${escapeHTML(typeInfo)}
-          </div>
-          <div style="font-size: 11px; margin-top: 2px; color: #000000; font-weight: bold;">
-            Customer: ${escapeHTML(order.customerName)}
-          </div>
-          ${order.phone ? `<div style="font-size: 11px; color: #000000; font-weight: bold;">Phone: ${escapeHTML(order.phone)}</div>` : ''}
           
           <div class="receipt-divider"></div>
           
-          <div style="font-weight: bold; font-size: 11px; margin-bottom: 6px; color: #000000;">ITEMS ORDERED</div>
+          <div style="display: flex; font-size: 11px; font-weight: bold; color: #000000; padding: 2px 0;">
+            <span style="width: 20px; text-align: left;">#</span>
+            <span style="flex: 1; text-align: left;">Name</span>
+            <span style="width: 35px; text-align: center;">Qty</span>
+            <span style="width: 50px; text-align: right;">Price</span>
+            <span style="width: 55px; text-align: right;">Amount</span>
+          </div>
+          
+          <div class="receipt-divider"></div>
+          
           ${itemsHtml}
           
           <div class="receipt-divider"></div>
           
-          <div class="receipt-row" style="font-size: 12px; color: #000000;">
-            <span>Subtotal:</span>
-            <span>₹${subtotal}</span>
+          <div style="display: flex; font-size: 12px; font-weight: bold; color: #000000; line-height: 1.4;">
+            <span style="width: 20px;"></span>
+            <span style="flex: 1;">Total</span>
+            <span style="width: 35px; text-align: center;">${totalQty}</span>
+            <span style="width: 50px;"></span>
+            <span style="width: 55px; text-align: right;">${Math.round(subtotal)}</span>
           </div>
-          ${gstHtml}
-          ${serviceChargeHtml}
-          ${discountHtml}
+          
+          <div style="font-size: 12px; font-weight: bold; color: #000000; margin-top: 4px; line-height: 1.35;">
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 2px;">
+              <span style="width: 100px; text-align: left;">Sub Total</span>
+              <span style="width: 15px; text-align: center;">:</span>
+              <span style="width: 55px; text-align: right;">${Math.round(subtotal)}</span>
+            </div>
+            ${discountVal > 0 ? `
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 2px;">
+              <span style="width: 100px; text-align: left;">Discount</span>
+              <span style="width: 15px; text-align: center;">:</span>
+              <span style="width: 55px; text-align: right;">-${Math.round(discountVal)}</span>
+            </div>` : ''}
+            ${gstHtml}
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 2px;">
+              <span style="width: 100px; text-align: left;">Total</span>
+              <span style="width: 15px; text-align: center;">:</span>
+              <span style="width: 55px; text-align: right;">${Math.round(grandTotal)}</span>
+            </div>
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 2px;">
+              <span style="width: 100px; text-align: left;">Received</span>
+              <span style="width: 15px; text-align: center;">:</span>
+              <span style="width: 55px; text-align: right;">${Math.round(grandTotal)}</span>
+            </div>
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 2px;">
+              <span style="width: 100px; text-align: left;">Balance</span>
+              <span style="width: 15px; text-align: center;">:</span>
+              <span style="width: 55px; text-align: right;">0</span>
+            </div>
+          </div>
           
           <div class="receipt-divider"></div>
           
-          <div class="receipt-row" style="font-weight: bold; font-size: 14px; color: #000000;">
-            <span>GRAND TOTAL:</span>
-            <span>₹${Math.max(0, grandTotal).toFixed(2)}</span>
-          </div>
-          
-          <div class="receipt-divider"></div>
-          
-          <div style="text-align: center; font-size: 10px; font-style: italic; margin-top: 8px; white-space: pre-line; color: #000000; font-weight: bold;">
-            ${escapeHTML(activeBillSettings.footerText)}
-          </div>
-          
-          <div style="text-align: center; font-size: 9px; color: #000000; border-top: 2px dotted #000000; padding-top: 6px; margin-top: 10px; font-weight: bold; letter-spacing: 0.5px;">
-            System powered by Wovrix | wovrixofficial@gmail.com
+          <div style="font-size: 11px; font-weight: bold; color: #000000; line-height: 1.4; margin-top: 5px;">
+            <div>Terms & Conditions</div>
+            <div>Thanks for doing business with us!</div>
           </div>
         `;
 
@@ -1440,7 +1474,6 @@
         alert("Failed to build receipt data.");
       }
     }
-
 
     function triggerPrintReceipt() {
       window.print();

@@ -1718,13 +1718,17 @@
           isValid = false;
         }
         
-        const formattedPhone = validateAndFormatPhone(rawPhone);
-        if (!formattedPhone) {
-          document.getElementById("client-phone-dt").parentNode.querySelector(".form-error").style.display = "block";
-          isValid = false;
+                if (rawPhone) {
+          const formattedPhone = validateAndFormatPhone(rawPhone);
+          if (!formattedPhone) {
+            document.getElementById("client-phone-dt").parentNode.querySelector(".form-error").style.display = "block";
+            isValid = false;
+          } else {
+            phone = formattedPhone;
+            document.getElementById("client-phone-dt").value = "+" + formattedPhone;
+          }
         } else {
-          phone = formattedPhone;
-          document.getElementById("client-phone-dt").value = "+" + formattedPhone;
+          phone = "";
         }
 
         // Email is optional, no longer required
