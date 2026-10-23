@@ -1434,8 +1434,13 @@
       } else {
         if (deliveryGroup) deliveryGroup.style.display = "none";
         if (dtGroup) dtGroup.style.display = "block";
+        const phoneDtLabel = document.querySelector('label[for="client-phone-dt"]');
+        const phoneDtInput = document.getElementById("client-phone-dt");
+
         if (mode === "dinein") {
           if (tableGroup) tableGroup.style.display = "block";
+          if (phoneDtLabel) phoneDtLabel.textContent = "Mobile Number (optional)";
+          if (phoneDtInput) phoneDtInput.placeholder = "Enter 10-digit mobile number (optional)";
           if (checkoutBtn) {
             checkoutBtn.innerHTML = "<span>🍽️</span> Send Order to Waiter";
             checkoutBtn.className = "btn btn-primary btn-block";
@@ -1443,6 +1448,8 @@
         } else {
           // Takeaway
           if (tableGroup) tableGroup.style.display = "none";
+          if (phoneDtLabel) phoneDtLabel.textContent = "Mobile Number (required)";
+          if (phoneDtInput) phoneDtInput.placeholder = "Enter 10-digit mobile number";
           if (checkoutBtn) {
             checkoutBtn.innerHTML = "<span>📱</span> WhatsApp";
             checkoutBtn.className = "btn btn-whatsapp-outline btn-block";
@@ -1718,7 +1725,22 @@
           isValid = false;
         }
         
-                if (rawPhone) {
+                if (selectedMode === "dinein") {
+          // Dine In: Mobile number is optional
+          if (rawPhone) {
+            const formattedPhone = validateAndFormatPhone(rawPhone);
+            if (!formattedPhone) {
+              document.getElementById("client-phone-dt").parentNode.querySelector(".form-error").style.display = "block";
+              isValid = false;
+            } else {
+              phone = formattedPhone;
+              document.getElementById("client-phone-dt").value = "+" + formattedPhone;
+            }
+          } else {
+            phone = "";
+          }
+        } else {
+          // Takeaway: Mobile number is strictly REQUIRED
           const formattedPhone = validateAndFormatPhone(rawPhone);
           if (!formattedPhone) {
             document.getElementById("client-phone-dt").parentNode.querySelector(".form-error").style.display = "block";
@@ -1727,8 +1749,6 @@
             phone = formattedPhone;
             document.getElementById("client-phone-dt").value = "+" + formattedPhone;
           }
-        } else {
-          phone = "";
         }
 
         // Email is optional, no longer required
